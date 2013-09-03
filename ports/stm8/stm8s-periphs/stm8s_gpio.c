@@ -132,6 +132,87 @@ void GPIO_WriteReverse(GPIO_TypeDef* GPIOx, GPIO_Pin_TypeDef PortPins)
     GPIOx->ODR ^= (u8)PortPins;
 }
 
+/**
+  * @brief Reads level of the specified GPIO pins.
+  * @param[in] PortPins : Specifies the pins to be reversed to the port output.
+  * data register.
+  * @retval None
+  * @par Required preconditions:
+  * The port must be configured in input mode.
+  */
+u8 GPIO_ReadInputData(GPIO_TypeDef* GPIOx)
+{
+    return GPIOx->IDR;
+}
+
+/**
+  * @brief Reads level of the specified GPIO pin.
+  * @param[in] GPIOx : Select the GPIO peripheral number (x = A to I).
+  * @param[in] PortPins : Specifies the pins to be reversed to the port output.
+  * data register.
+  * @retval None
+  * @par Required preconditions:
+  * The port must be configured in input mode.
+  */
+BitStatus GPIO_ReadInputPin(GPIO_TypeDef* GPIOx, GPIO_Pin_TypeDef GPIO_Pin)
+{
+    return (BitStatus)(GPIOx->IDR&(u8)GPIO_Pin);
+}
+
+/**
+  * @brief Writes level to high of the specified GPIO pin.
+  * @param[in] GPIOx : Select the GPIO peripheral number (x = A to I).
+  * @param[in] PortPins : Specifies the pins to be reversed to the port output.
+  * data register.
+  * @retval None
+  * @par Required preconditions:
+  * The port must be configured in output mode.
+  */
+void GPIO_WriteHigh(GPIO_TypeDef* GPIOx, GPIO_Pin_TypeDef PortPins)
+{
+    GPIOx->ODR |= (u8)PortPins;
+}
+/**
+  * @brief Writes level to low of the specified GPIO pin.
+  * @param[in] GPIOx : Select the GPIO peripheral number (x = A to I).
+  * @param[in] PortPins : Specifies the pins to be reversed to the port output.
+  * data register.
+  * @retval None
+  * @par Required preconditions:
+  * The port must be configured in output mode.
+  */
+void GPIO_WriteLow(GPIO_TypeDef* GPIOx, GPIO_Pin_TypeDef PortPins)
+{
+    GPIOx->ODR &= (u8)(~PortPins);
+}
+/**
+  * @brief Set interrupt mode of specified GPIO pins.
+  * @param[in] GPIOx : Select the GPIO peripheral number (x = A to I).
+  * @param[in] PortPins : Specifies the pins to be reversed to the port output.
+  * data register.
+  * @retval None
+  * @par Required preconditions:
+  * The port must be configured in input and interrupt mode.
+  */
+void GPIO_ExternalIntSensitivity(GPIO_TypeDef* GPIOx, GPIO_Sensitivity PortSens)
+{
+    if(GPIOx==GPIOA) {
+        EXTI->PAIS=(u8)PortSens;
+    } else if(GPIOx==GPIOB) {
+        EXTI->PBIS=(u8)PortSens;
+    } else if(GPIOx==GPIOC) {
+        EXTI->PCIS=(u8)PortSens;
+    } else if(GPIOx==GPIOD) {
+        EXTI->PDIS=(u8)PortSens;
+    } else if(GPIOx==GPIOE) {
+        EXTI->PEIS=(u8)PortSens;
+    } else if(GPIOx==GPIOF) {
+        //sens = (u8)PortSens
+    } else if(GPIOx==GPIOG) {
+        //sens = (u8)PortSens
+    }
+    
+}
 
 /**
   * @}

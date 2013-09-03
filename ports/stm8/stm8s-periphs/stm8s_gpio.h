@@ -82,6 +82,19 @@ typedef enum
 }GPIO_Pin_TypeDef;
 
 /**
+  * @brief Definition of interrupt mode of the GPIO pin. Used by the @ref GPIO_Init function in
+  * order to select the pins to be initialized.
+  */
+
+typedef enum
+{
+  GPIO_SENS_FALL_LOW      = (u8)0x0, /*!< Input floating, no external interrupt */
+  GPIO_SENS_RISE          = (u8)0x1, /*!< Input pull-up, no external interrupt */
+  GPIO_SENS_FALL          = (u8)0x2, /*!< Input floating, external interrupt */
+  GPIO_SENS_FALL_RISE     = (u8)0x3, /*!< Input pull-up, external interrupt */
+}GPIO_Sensitivity;
+
+/**
   * @}
   */
 
@@ -140,6 +153,7 @@ u8 GPIO_ReadInputData(GPIO_TypeDef* GPIOx);
 u8 GPIO_ReadOutputData(GPIO_TypeDef* GPIOx);
 BitStatus GPIO_ReadInputPin(GPIO_TypeDef* GPIOx, GPIO_Pin_TypeDef GPIO_Pin);
 void GPIO_ExternalPullUpConfig(GPIO_TypeDef* GPIOx, GPIO_Pin_TypeDef GPIO_Pin, FunctionalState NewState);
+void GPIO_ExternalIntSensitivity(GPIO_TypeDef* GPIOx, GPIO_Sensitivity PortSens);
 /**
   * @}
   */
