@@ -1351,8 +1351,22 @@ ITC_TypeDef;
 
 typedef struct EXTI_struct
 {
-  vu8 CR1; /*!< External Interrupt Control Register for PORTA to PORTD */
-  vu8 CR2; /*!< External Interrupt Control Register for PORTE and TLI */
+  union{
+    vu8 CR1; /*!< External Interrupt Control Register for PORTA to PORTD */
+    struct{
+      vu8 PAIS:2;
+      vu8 PBIS:2;
+      vu8 PCIS:2;
+      vu8 PDIS:2;
+    };
+  };
+  union{
+    vu8 CR2; /*!< External Interrupt Control Register for PORTE and TLI */
+    struct{
+      vu8 PEIS:2;
+      vu8 TLIS:1;
+    };
+  };
 }
 EXTI_TypeDef;
 
