@@ -464,7 +464,7 @@
         </option>
         <option>
           <name>OOCOutputFile</name>
-          <state></state>
+          <state>atomthreads-sample-iar.srec</state>
         </option>
         <option>
           <name>OOCCommandLineProducer</name>
@@ -578,11 +578,11 @@
         </option>
         <option>
           <name>IlinkIcfOverride</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>IlinkIcfFile</name>
-          <state>$TOOLKIT_DIR$\config\lnkstm8s105k4.icf</state>
+          <state>$PROJ_DIR$\lnkstm8s105k4.icf</state>
         </option>
         <option>
           <name>IlinkIcfFileSlave</name>
