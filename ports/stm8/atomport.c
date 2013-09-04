@@ -313,7 +313,7 @@ interrupt 11
  * Port B external interrupt ISR.
  *
  */
-extern void EXTI1_PortB();
+extern void EXTI1_PortB_handler();
 
 #if defined(__IAR_SYSTEMS_ICC__)
 #pragma vector = 6
@@ -327,7 +327,7 @@ interrupt 4
     atomIntEnter();
 
 
-    EXTI1_PortB();
+    EXTI1_PortB_handler();
 
     /* Call the interrupt exit routine */
     atomIntExit(TRUE);

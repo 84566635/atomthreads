@@ -127,11 +127,8 @@ void HardwareInit( void )
 
     GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_FAST);
 
-    //interrupt
-    //__disable_interrupt();
     GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_FL_IT);
     GPIO_ExternalIntSensitivity(GPIOB, GPIO_SENS_RISE);
-    //__enable_interrupt();
 }
 /**
  * \b main
@@ -217,14 +214,12 @@ static void ADC_Config()
   
 }
 
-void EXTI1_PortB()
+void EXTI1_PortB_handler()
 {
-    __disable_interrupt();
     if(GPIO_ReadInputPin(GPIOB, GPIO_PIN_3)) {
         blight = 15;
     }
-    __enable_interrupt();
-};
+}
 
 static void main_thread_func (uint32_t param)
 {
