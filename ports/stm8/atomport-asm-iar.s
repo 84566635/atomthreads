@@ -32,7 +32,7 @@
 
 
   NAME ATOMPORTASM
-  SECTION .near_func.text:code
+  SECTION .near_func.textrw:code
 
 ; Get definitions for virtual registers used by the compiler
 #include "vregs.inc"
