@@ -141,6 +141,7 @@ void UART2_Init(u32 BaudRate, UART2_WordLength_TypeDef WordLength, UART2_StopBit
     if ((u8)Mode & (u8)UART2_MODE_RX_ENABLE)
     {
         UART2->CR2 |= (u8)UART2_CR2_REN;  /**< Set the Receiver Enable bit */
+        UART2->CR2 |= (u8)UART2_CR2_RIEN; /*set Receiver Interrupt Enable bit*/
     }
     else
     {
