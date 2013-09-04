@@ -117,7 +117,22 @@ NEAR static uint8_t idle_thread_stack[IDLE_STACK_SIZE_BYTES];
 /* Forward declarations */
 static void main_thread_func (uint32_t param);
 
+void HardwareInit( void )
+{
+    GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
+    
+    /* Configure GPIO for flashing the STM8S Discovery LED on GPIO D0 */
+    GPIO_DeInit(GPIOE);
+    GPIO_Init(GPIOE, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);
 
+    GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_FAST);
+
+    //interrupt
+    //__disable_interrupt();
+    GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_FL_IT);
+    GPIO_ExternalIntSensitivity(GPIOB, GPIO_SENS_RISE);
+    //__enable_interrupt();
+}
 /**
  * \b main
  *
@@ -136,6 +151,8 @@ static void main_thread_func (uint32_t param);
 NO_REG_SAVE void main ( void )
 {
     int8_t status;
+    
+     HardwareInit();
 
     /**
      * Note: to protect OS structures and data during initialisation,
@@ -219,8 +236,6 @@ static void main_thread_func (uint32_t param)
 
     ADC_Config();
 
-    GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
-
     /* Initialise UART (115200bps) */
     if (uart_init(115200) != 0)
     {
@@ -233,20 +248,6 @@ static void main_thread_func (uint32_t param)
     /* Flash LED once per second if passed, very quickly if failed */
     sleep_ticks = SYSTEM_TICKS_PER_SEC;
 
-    /* Configure GPIO for flashing the STM8S Discovery LED on GPIO D0 */
-    GPIO_DeInit(GPIOE);
-    GPIO_Init(GPIOE, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);
-
-    GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_FAST);
-
-    //interrupt
-    __disable_interrupt();
-    GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_FL_IT);
-    GPIO_ExternalIntSensitivity(GPIOB, GPIO_SENS_RISE);
-    __enable_interrupt();
-
-    
-    
     /* Test finished, flash slowly for pass, fast for fail */
     while (1)
     {
