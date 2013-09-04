@@ -307,3 +307,52 @@ interrupt 11
     /* Call the interrupt exit routine */
     atomIntExit(TRUE);
 }
+
+/**
+ *
+ * Port B external interrupt ISR.
+ *
+ */
+extern void EXTI1_PortB();
+
+#if defined(__IAR_SYSTEMS_ICC__)
+#pragma vector = 6
+#endif
+INTERRUPT void EXTI1_PortBISR (void)
+#if defined(__RCSTM8__)
+interrupt 4
+#endif
+{
+    /* Call the interrupt entry routine */
+    atomIntEnter();
+
+
+    EXTI1_PortB();
+
+    /* Call the interrupt exit routine */
+    atomIntExit(TRUE);
+}
+
+/**
+ *
+ * UART2 RX ISR.
+ *
+ */
+#if defined(__IAR_SYSTEMS_ICC__)
+#pragma   vector = 0x17
+#endif
+INTERRUPT void UART2_Rxd(void)
+#if defined(__RCSTM8__)
+interrupt 0x15
+#endif
+{
+    /* Call the interrupt entry routine */
+    atomIntEnter();
+	
+    UART2->SR &= (~UART2_SR_RXNE);
+    //mrxdata = UART2_DR;
+    //bpendingecho=1;
+	
+	/* Call the interrupt exit routine */
+    atomIntExit(TRUE);
+}
