@@ -31,6 +31,7 @@
 #include <stdio.h>
 
 #include "atom.h"
+#include "atomsem.h"
 #include "atomport-private.h"
 #include "atomport-tests.h"
 #include "atomtests.h"
@@ -101,8 +102,7 @@ extern int _stack;
 
 
 /* Local data */
-
-static u8 blight;
+static ATOM_SEM sem_light;
 
 /* Application threads' TCBs */
 static ATOM_TCB main_tcb;
@@ -120,7 +120,7 @@ static void main_thread_func (uint32_t param);
 void HardwareInit( void )
 {
     GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
-    
+
     /* Configure GPIO for flashing the STM8S Discovery LED on GPIO D0 */
     GPIO_DeInit(GPIOE);
     GPIO_Init(GPIOE, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);
@@ -141,15 +141,15 @@ void HardwareInit( void )
  * If the compiler supports it, stack space can be saved by preventing
  * the function from saving registers on entry. This is because we
  * are called directly by the C startup assembler, and know that we will
- * never return from here. The NO_REG_SAVE macro is used to denote such 
+ * never return from here. The NO_REG_SAVE macro is used to denote such
  * functions in a compiler-agnostic way, though not all compilers support it.
  *
  */
 NO_REG_SAVE void main ( void )
 {
     int8_t status;
-    
-     HardwareInit();
+
+    HardwareInit();
 
     /**
      * Note: to protect OS structures and data during initialisation,
@@ -168,9 +168,9 @@ NO_REG_SAVE void main ( void )
 
         /* Create an application thread */
         status = atomThreadCreate(&main_tcb,
-                     TEST_THREAD_PRIO, main_thread_func, 0,
-                     &main_thread_stack[MAIN_STACK_SIZE_BYTES - 1],
-                     MAIN_STACK_SIZE_BYTES);
+                                  TEST_THREAD_PRIO, main_thread_func, 0,
+                                  &main_thread_stack[MAIN_STACK_SIZE_BYTES - 1],
+                                  MAIN_STACK_SIZE_BYTES);
         if (status == ATOM_OK)
         {
             /**
@@ -197,37 +197,48 @@ NO_REG_SAVE void main ( void )
 
 static void ADC_Config()
 {
-  /*  Init GPIO for ADC1 */
-  GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_IN_FL_NO_IT);
-  
-  /* De-Init ADC peripheral*/
-  ADC1_DeInit();
+    /*  Init GPIO for ADC1 */
+    GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_IN_FL_NO_IT);
 
-  /* Init ADC2 peripheral */
-  ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_0, ADC1_PRESSEL_FCPU_D18, \
-            ADC1_EXTTRIG_TIM, DISABLE, ADC1_ALIGN_LEFT, ADC1_SCHMITTTRIG_CHANNEL0,\
-            DISABLE);
+    /* De-Init ADC peripheral*/
+    ADC1_DeInit();
 
-  /* Disable EOC interrupt */
-  ADC1_ITConfig(ADC1_IT_EOCIE, DISABLE);
-  
-  
+    /* Init ADC2 peripheral */
+    ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_0, ADC1_PRESSEL_FCPU_D18, \
+              ADC1_EXTTRIG_TIM, DISABLE, ADC1_ALIGN_LEFT, ADC1_SCHMITTTRIG_CHANNEL0,\
+              DISABLE);
+
+    /* Disable EOC interrupt */
+    ADC1_ITConfig(ADC1_IT_EOCIE, DISABLE);
+
+
 }
 
 void EXTI1_PortB_handler()
 {
     if(GPIO_ReadInputPin(GPIOB, GPIO_PIN_3)) {
-        blight = 15;
+        if (atomSemPut (&sem_light) != ATOM_OK)
+        {
+            ATOMLOG (_STR("Put failed\n"));
+        }
+
     }
 }
 
 static void main_thread_func (uint32_t param)
 {
     int sleep_ticks;
+    uint8_t status;
     uint16_t Conversion_Value;
 
     /* Compiler warnings */
     param = param;
+
+    if (atomSemCreate (&sem_light, 0) != ATOM_OK)
+    {
+        ATOMLOG (_STR("Error creating test semaphore light\n"));
+        return;
+    }
 
     ADC_Config();
 
@@ -241,39 +252,38 @@ static void main_thread_func (uint32_t param)
     printf("Go\n");
 
     /* Flash LED once per second if passed, very quickly if failed */
-    sleep_ticks = SYSTEM_TICKS_PER_SEC;
+    sleep_ticks = SYSTEM_TICKS_PER_SEC*15;
 
     /* Test finished, flash slowly for pass, fast for fail */
     while (1)
     {
-        if(blight) {
-            /*Start Conversion */
-            ADC1_StartConversion();
-            while(ADC1_GetFlagStatus(ADC1_FLAG_EOC)==RESET){
-              atomTimerDelay(1);
-            };
-            Conversion_Value = ADC1_GetConversionValue();
-            ADC1_ITConfig(ADC1_IT_EOC, DISABLE);
-            
-            
-            if(Conversion_Value > 0x300) {
-                /* Toggle BLUE LED  */
-                GPIO_WriteReverse(GPIOC, GPIO_PIN_2);
-            } else {
-                /* bright enough */
-                GPIO_WriteLow(GPIOC, GPIO_PIN_2);
-            }
-            printf("ADC[0]: 0x%x\n", Conversion_Value);
-            blight--;
-        } else {
-            GPIO_WriteLow(GPIOC, GPIO_PIN_2);
+        if ((status = atomSemGet (&sem_light, 0)) != ATOM_OK)
+        {
+            ATOMLOG (_STR("Error %d\n"), status);
+            break;
+        }
+
+        /*Start Conversion */
+        ADC1_StartConversion();
+        while(ADC1_GetFlagStatus(ADC1_FLAG_EOC)==RESET) {
+            atomTimerDelay(1);
+        };
+        Conversion_Value = ADC1_GetConversionValue();
+        ADC1_ITConfig(ADC1_IT_EOC, DISABLE);
+
+
+        printf("ADC[0]: 0x%x\n", Conversion_Value);
+        if(Conversion_Value > 0x300) {
+            /* Toggle BLUE LED  */
+            GPIO_WriteHigh(GPIOC, GPIO_PIN_2);
+            /* Sleep then toggle LED again */
+            atomTimerDelay(sleep_ticks);
         }
 
         /* Toggle small LED on board */
         GPIO_WriteReverse(GPIOE, GPIO_PIN_5);
 
-        /* Sleep then toggle LED again */
-        atomTimerDelay(sleep_ticks);
+        GPIO_WriteLow(GPIOC, GPIO_PIN_2);
     }
 }
 
