@@ -341,7 +341,7 @@ interrupt 4
 #if defined(__IAR_SYSTEMS_ICC__)
 #pragma   vector = 0x17
 #endif
-INTERRUPT void UART2_Rxd(void)
+INTERRUPT void UART2_RxdISR(void)
 #if defined(__RCSTM8__)
 interrupt 0x15
 #endif
@@ -352,6 +352,31 @@ interrupt 0x15
     UART2->SR &= (~UART2_SR_RXNE);
     //mrxdata = UART2_DR;
     //bpendingecho=1;
+	
+	/* Call the interrupt exit routine */
+    atomIntExit(TRUE);
+}
+
+/**
+ *
+ * AWU ISR.
+ *
+ */
+#if defined(__IAR_SYSTEMS_ICC__)
+#pragma   vector = 0x3
+#endif
+INTERRUPT void AWU_ISR(void)
+#if defined(__RCSTM8__)
+interrupt 0x2
+#endif
+{
+    /* Call the interrupt entry routine */
+    atomIntEnter();
+	
+    if(AWU_GetFlagStatus()==SET)
+    {
+    	
+    }
 	
 	/* Call the interrupt exit routine */
     atomIntExit(TRUE);
