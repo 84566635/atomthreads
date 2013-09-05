@@ -86,7 +86,49 @@ u32 CLK_GetClockFreq(void)
 
 }
 
+/**
+  * @brief  Enables or disables the specified peripheral CLK.
+  * @param[in] CLK_Peripheral : This parameter specifies the peripheral clock to gate.
+  * This parameter can be any of the  @ref CLK_Peripheral_TypeDef enumeration.
+  * @param[in] NewState : New state of specified peripheral clock.
+  * This parameter can be any of the @ref FunctionalState enumeration.
+  * @retval None
+  */
+void CLK_PeripheralClockConfig(CLK_Peripheral_TypeDef CLK_Peripheral, FunctionalState NewState)
+{
 
+    /* Check the parameters */
+    assert_param(IS_FUNCTIONALSTATE_OK(NewState));
+    assert_param(IS_CLK_PERIPHERAL_OK(CLK_Peripheral));
+
+    if (((u8)CLK_Peripheral & (u8)0x10) == 0x00)
+    {
+        if (NewState != DISABLE)
+        {
+            /* Enable the peripheral Clock */
+            CLK->PCKENR1 |= (u8)((u8)1 << ((u8)CLK_Peripheral & (u8)0x0F));
+        }
+        else
+        {
+            /* Disable the peripheral Clock */
+            CLK->PCKENR1 &= (u8)(~(u8)(((u8)1 << ((u8)CLK_Peripheral & (u8)0x0F))));
+        }
+    }
+    else
+    {
+        if (NewState != DISABLE)
+        {
+            /* Enable the peripheral Clock */
+            CLK->PCKENR2 |= (u8)((u8)1 << ((u8)CLK_Peripheral & (u8)0x0F));
+        }
+        else
+        {
+            /* Disable the peripheral Clock */
+            CLK->PCKENR2 &= (u8)(~(u8)(((u8)1 << ((u8)CLK_Peripheral & (u8)0x0F))));
+        }
+    }
+
+}
 /**
   * @}
   */

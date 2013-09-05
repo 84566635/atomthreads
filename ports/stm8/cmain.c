@@ -119,6 +119,14 @@ static void main_thread_func (uint32_t param);
 
 void HardwareInit( void )
 {
+	/* disable unused clock */
+    CLK_PeripheralClockConfig(CLK_PERIPHERAL_I2C, DISABLE);
+    CLK_PeripheralClockConfig(CLK_PERIPHERAL_SPI, DISABLE);
+    CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER2, DISABLE);
+    CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER4, DISABLE);
+    CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER4, DISABLE);
+
+    
     GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
 
     /* Configure GPIO for flashing the STM8S Discovery LED on GPIO D0 */
