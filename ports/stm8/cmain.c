@@ -42,7 +42,15 @@
 
 
 /* Constants */
-
+/* gfedcba
+ * 0,1,2,3,4,5,6,7,8,9,a,b,c,d,e,f
+ */
+static const uint8_t dig_hextable[]= {
+    0x3f,0x06,0x5b,0x4f,
+    0x66,0x6d,0x7d,0x07,
+    0x7f,0x6f,0x77,0x7c,
+    0x39,0x5e,0x79,0x71
+};
 /*
  * Idle thread stack size
  *
@@ -119,24 +127,117 @@ static void main_thread_func (uint32_t param);
 
 void HardwareInit( void )
 {
-	/* disable unused clock */
+    /* disable unused clock */
     CLK_PeripheralClockConfig(CLK_PERIPHERAL_I2C, DISABLE);
     CLK_PeripheralClockConfig(CLK_PERIPHERAL_SPI, DISABLE);
     CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER2, DISABLE);
     CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER4, DISABLE);
     CLK_PeripheralClockConfig(CLK_PERIPHERAL_TIMER4, DISABLE);
 
-    
+
     GPIO_Init(GPIOD, GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
 
-    /* Configure GPIO for flashing the STM8S Discovery LED on GPIO D0 */
+    /* onboard orange led(disabled by default) */
     GPIO_DeInit(GPIOE);
-    GPIO_Init(GPIOE, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);
+    //GPIO_Init(GPIOE, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);
 
-    GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_FAST);
+    //blue led
+    GPIO_WriteLow(GPIOC, GPIO_PIN_2);
+    GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_SLOW);
 
-    GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_FL_IT);
+    //Interrupt human sensor
     GPIO_ExternalIntSensitivity(GPIOB, GPIO_SENS_RISE);
+    GPIO_Init(GPIOB, GPIO_PIN_3, GPIO_MODE_IN_FL_IT);
+
+    //digital leds
+    GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteLow(GPIOA, GPIO_PIN_1);
+
+    GPIO_Init(GPIOC, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOC, GPIO_PIN_1);
+    GPIO_Init(GPIOC, GPIO_PIN_3, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOC, GPIO_PIN_3);
+    GPIO_Init(GPIOC, GPIO_PIN_4, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOC, GPIO_PIN_4);
+    GPIO_Init(GPIOC, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOC, GPIO_PIN_5);
+    GPIO_Init(GPIOC, GPIO_PIN_6, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOC, GPIO_PIN_6);
+    GPIO_Init(GPIOC, GPIO_PIN_7, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOC, GPIO_PIN_7);
+
+    GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
+    GPIO_Init(GPIOD, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOD, GPIO_PIN_1);
+
+}
+
+static void show_dig_bits(uint8_t showbits)
+{
+    //a
+    if(showbits&1) {
+        GPIO_WriteLow(GPIOC, GPIO_PIN_7);
+    } else {
+        GPIO_WriteHigh(GPIOC, GPIO_PIN_7);
+    }
+    //b
+    if(showbits&2) {
+        GPIO_WriteLow(GPIOD, GPIO_PIN_1);
+    } else {
+        GPIO_WriteHigh(GPIOD, GPIO_PIN_1);
+    }
+    //c
+    if(showbits&4) {
+        GPIO_WriteLow(GPIOC, GPIO_PIN_5);
+    } else {
+        GPIO_WriteHigh(GPIOC, GPIO_PIN_5);
+    }
+    //d
+    if(showbits&8) {
+        GPIO_WriteLow(GPIOC, GPIO_PIN_3);
+    } else {
+        GPIO_WriteHigh(GPIOC, GPIO_PIN_3);
+    }
+    //e
+    if(showbits&0x10) {
+        GPIO_WriteLow(GPIOC, GPIO_PIN_1);
+    } else {
+        GPIO_WriteHigh(GPIOC, GPIO_PIN_1);
+    }
+    //f
+    if(showbits&0x20) {
+        GPIO_WriteLow(GPIOD, GPIO_PIN_0);
+    } else {
+        GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
+    }
+    //g
+    if(showbits&0x40) {
+        GPIO_WriteLow(GPIOC, GPIO_PIN_6);
+    } else {
+        GPIO_WriteHigh(GPIOC, GPIO_PIN_6);
+    }
+    //dp
+    if(showbits&0x80) {
+        GPIO_WriteLow(GPIOC, GPIO_PIN_4);
+    } else {
+        GPIO_WriteHigh(GPIOC, GPIO_PIN_4);
+    }
+}
+
+static void show_dig(uint8_t dig, uint8_t dot )
+{
+    if(dig <= (sizeof(dig_hextable)/sizeof(dig_hextable[0]))) {
+    	if(dot) {
+	        show_dig_bits(dig_hextable[dig]|0x80);
+        } else {
+	        show_dig_bits(dig_hextable[dig]);
+        }
+    }
+}
+static void clear_dig()
+{
+	show_dig_bits(0);
 }
 /**
  * \b main
@@ -157,7 +258,11 @@ NO_REG_SAVE void main ( void )
 {
     int8_t status;
 
+    __disable_interrupt();
+
     HardwareInit();
+
+    __enable_interrupt();
 
     /**
      * Note: to protect OS structures and data during initialisation,
@@ -212,7 +317,7 @@ static void ADC_Config()
     ADC1_DeInit();
 
     /* Init ADC2 peripheral */
-    ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_0, ADC1_PRESSEL_FCPU_D18, \
+    ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_0, ADC1_PRESSEL_FCPU_D8, \
               ADC1_EXTTRIG_TIM, DISABLE, ADC1_ALIGN_LEFT, ADC1_SCHMITTTRIG_CHANNEL0,\
               DISABLE);
 
@@ -236,11 +341,20 @@ void EXTI1_PortB_handler()
 static void main_thread_func (uint32_t param)
 {
     int sleep_ticks;
-    uint8_t status;
+    uint8_t status,dot;
     uint16_t Conversion_Value;
 
     /* Compiler warnings */
     param = param;
+
+	clear_dig();
+    for(status=0; status<16; status++) {
+    	for(dot=0; dot<2; dot++) {
+        	show_dig(status, dot);
+        	atomTimerDelay(90);
+        }
+    }
+    clear_dig();
 
     if (atomSemCreate (&sem_light, 0) != ATOM_OK)
     {
@@ -260,11 +374,12 @@ static void main_thread_func (uint32_t param)
     printf("Go\n");
 
     /* Flash LED once per second if passed, very quickly if failed */
-    sleep_ticks = SYSTEM_TICKS_PER_SEC*15;
+    sleep_ticks = SYSTEM_TICKS_PER_SEC*10;
 
     /* Test finished, flash slowly for pass, fast for fail */
     while (1)
     {
+
         if ((status = atomSemGet (&sem_light, 0)) != ATOM_OK)
         {
             ATOMLOG (_STR("Error %d\n"), status);
@@ -283,7 +398,8 @@ static void main_thread_func (uint32_t param)
         printf("ADC[0]: 0x%x\n", Conversion_Value);
         if(Conversion_Value > 0x300) {
             /* Toggle BLUE LED  */
-            GPIO_WriteHigh(GPIOC, GPIO_PIN_2);
+            GPIO_WriteLow(GPIOC, GPIO_PIN_2);
+            //GPIO_WriteReverse(GPIOC, GPIO_PIN_2);
             /* Sleep then toggle LED again */
             atomTimerDelay(sleep_ticks);
         }
@@ -291,7 +407,8 @@ static void main_thread_func (uint32_t param)
         /* Toggle small LED on board */
         GPIO_WriteReverse(GPIOE, GPIO_PIN_5);
 
-        GPIO_WriteLow(GPIOC, GPIO_PIN_2);
+        GPIO_WriteHigh(GPIOC, GPIO_PIN_2);
+
     }
 }
 
