@@ -142,8 +142,9 @@ void HardwareInit( void )
     //GPIO_Init(GPIOE, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_FAST);
 
     //blue led
-    GPIO_WriteLow(GPIOC, GPIO_PIN_2);
     GPIO_Init(GPIOC, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteHigh(GPIOC, GPIO_PIN_2);
+
 
     //Interrupt human sensor
     GPIO_ExternalIntSensitivity(GPIOB, GPIO_SENS_RISE);
@@ -152,6 +153,15 @@ void HardwareInit( void )
     //digital leds
     GPIO_Init(GPIOA, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteLow(GPIOA, GPIO_PIN_1);
+    GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_WriteLow(GPIOA, GPIO_PIN_2);
+    GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST);
+    GPIO_WriteLow(GPIOB, GPIO_PIN_4);
+    GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUT_PP_HIGH_FAST);
+    GPIO_WriteLow(GPIOB, GPIO_PIN_5);
+    //comma
+    GPIO_Init(GPIOF, GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST);
+    GPIO_WriteLow(GPIOF, GPIO_PIN_4);
 
     GPIO_Init(GPIOC, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteHigh(GPIOC, GPIO_PIN_1);
@@ -168,11 +178,24 @@ void HardwareInit( void )
 
     GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
-    GPIO_Init(GPIOD, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
+    GPIO_Init(GPIOD, GPIO_PIN_1, GPIO_MODE_OUT_OD_HIZ_SLOW);
     GPIO_WriteHigh(GPIOD, GPIO_PIN_1);
+    GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_SLOW);
+    GPIO_WriteHigh(GPIOD, GPIO_PIN_2);
 
 }
 
+static void show_comma(uint8_t show)
+{
+    //pin 8
+    if(show) {
+        GPIO_WriteLow(GPIOF, GPIO_PIN_4);
+        GPIO_WriteLow(GPIOD, GPIO_PIN_2);
+    } else {
+        GPIO_WriteHigh(GPIOF, GPIO_PIN_4);
+        GPIO_WriteHigh(GPIOD, GPIO_PIN_2);
+    }
+}
 static void show_dig_bits(uint8_t showbits)
 {
     //a
@@ -227,17 +250,46 @@ static void show_dig_bits(uint8_t showbits)
 
 static void show_dig(uint8_t dig, uint8_t dot )
 {
-    if(dig <= (sizeof(dig_hextable)/sizeof(dig_hextable[0]))) {
-    	if(dot) {
-	        show_dig_bits(dig_hextable[dig]|0x80);
+    if(dig < (sizeof(dig_hextable)/sizeof(dig_hextable[0]))) {
+        if(dot) {
+            show_dig_bits(dig_hextable[dig]|0x80);
         } else {
-	        show_dig_bits(dig_hextable[dig]);
+            show_dig_bits(dig_hextable[dig]);
         }
     }
 }
 static void clear_dig()
 {
-	show_dig_bits(0);
+    show_dig_bits(0);
+}
+
+static void select_clear( void )
+{
+    //clear all
+    GPIO_WriteHigh(GPIOA, GPIO_PIN_1);
+    GPIO_WriteHigh(GPIOA, GPIO_PIN_2);
+    GPIO_WriteHigh(GPIOB, GPIO_PIN_4);
+    GPIO_WriteHigh(GPIOB, GPIO_PIN_5);
+}
+static void select_dig(uint8_t way)
+{
+    switch(way) {
+    case 0:
+        GPIO_WriteLow(GPIOA, GPIO_PIN_2);
+        break;
+    case 1:
+        GPIO_WriteLow(GPIOB, GPIO_PIN_5);
+        break;
+    case 2:
+        GPIO_WriteLow(GPIOB, GPIO_PIN_4);
+        break;
+    case 3:
+        GPIO_WriteLow(GPIOA, GPIO_PIN_1);
+        break;
+
+
+
+    }
 }
 /**
  * \b main
@@ -338,24 +390,59 @@ void EXTI1_PortB_handler()
     }
 }
 
+void TIM3_handler()
+{
+    static uint8_t dot=0,num=0;
+
+    if(dot<4) {
+    	dot++;
+    } else {
+    	dot=0;
+    }
+
+    if(atomTimeGet()%100==0) {
+            num++;
+    }
+    select_clear();
+    show_dig((num+dot)%16, (num+dot)%2);
+    select_dig(dot);
+
+    show_comma(num%2);
+}
+
 static void main_thread_func (uint32_t param)
 {
     int sleep_ticks;
-    uint8_t status,dot;
+    uint8_t status,dot,num=0;
     uint16_t Conversion_Value;
 
     /* Compiler warnings */
     param = param;
 
-	clear_dig();
-    for(status=0; status<16; status++) {
-    	for(dot=0; dot<2; dot++) {
-        	show_dig(status, dot);
-        	atomTimerDelay(90);
-        }
-    }
+    __disable_interrupt();
+    archInitTimer3 ();
+    __enable_interrupt();
+#if 0
     clear_dig();
 
+    sleep_ticks=0;
+    for(status=0; status<1000; status++) {
+        if(status%53==0) {
+            num++;
+        }
+        for(dot=0; dot<4; dot++) {
+
+            select_clear();
+            show_dig((num+dot)%16, (num+dot)%2);
+            select_dig(dot);
+
+            show_comma(num%2);
+            atomTimerDelay(1);
+        }
+
+    }
+    clear_dig();
+#endif
     if (atomSemCreate (&sem_light, 0) != ATOM_OK)
     {
         ATOMLOG (_STR("Error creating test semaphore light\n"));
