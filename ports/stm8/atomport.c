@@ -31,6 +31,7 @@
 #include "atom.h"
 #include "atomport-private.h"
 #include "stm8s_tim1.h"
+#include "stm8s_tim3.h"
 #if defined(__RCSTM8__)
 #include <intrins.h>
 #endif
@@ -251,6 +252,22 @@ void archInitSystemTickTimer ( void )
 }
 
 
+void archInitTimer3 ( void )
+{
+    /* Reset TIM3 */
+    TIM3_DeInit();
+
+    /* Configure a 5ms tick */
+    TIM3_TimeBaseInit(TIM3_PRESCALER_2, 5000);
+
+    /* Generate an interrupt on timer count overflow */
+    TIM3_ITConfig(TIM1_IT_UPDATE, ENABLE);
+
+    /* Enable TIM1 */
+    TIM3_Cmd(ENABLE);
+
+}
+
 /**
  *
  * System tick ISR.
@@ -375,8 +392,41 @@ interrupt 0x2
 	
     if(AWU_GetFlagStatus()==SET)
     {
-    	
+#ifdef VARIABLE_TICK_TIMER    
+    	AtomAwuHandler();
+#endif    	
     }
+	
+	/* Call the interrupt exit routine */
+    atomIntExit(TRUE);
+}
+/**
+ *
+ * TIM3 interrupt handler.
+ *
+ */
+extern void TIM3_handler();
+
+/**
+ *
+ * TIM3 ISR.
+ *
+ */
+#if defined(__IAR_SYSTEMS_ICC__)
+#pragma   vector = 0X11
+#endif
+INTERRUPT void TIM3_ISR(void)
+#if defined(__RCSTM8__)
+interrupt 0x10
+#endif
+{
+    /* Call the interrupt entry routine */
+    atomIntEnter();
+
+	TIM3_handler();
+    /* Ack the interrupt (Clear TIM1:SR1 register bit 0) */
+    TIM3->SR1 = (uint8_t)(~(uint8_t)TIM1_IT_UPDATE);
+	
 	
 	/* Call the interrupt exit routine */
     atomIntExit(TRUE);
