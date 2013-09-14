@@ -182,10 +182,11 @@
           <name>CCDefines</name>
           <state>STM8S105</state>
           <state>ATOM_STACK_CHECKING</state>
+          <state>VARIABLE_TICK_TIMER</state>
         </option>
         <option>
           <name>CCPreprocFile</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>CCPreprocComments</name>
@@ -197,15 +198,15 @@
         </option>
         <option>
           <name>CCListCFile</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>CCListCMnemonics</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>CCListCMessages</name>
-          <state>0</state>
+          <state>1</state>
         </option>
         <option>
           <name>CCListAssFile</name>
@@ -2360,7 +2361,7 @@
       <name>$PROJ_DIR$\stm8s-periphs\stm8s_clk.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\stm8s-periphs\stm8s_clk.h</name>
+      <name>$PROJ_DIR$\STM8S-PERIPHS\stm8s_clk.h</name>
     </file>
     <file>
       <name>$PROJ_DIR$\stm8s-periphs\stm8s_gpio.c</name>
@@ -2381,13 +2382,16 @@
       <name>$PROJ_DIR$\stm8s-periphs\stm8s_tim1.h</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\stm8s-periphs\stm8s_tim3.c</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\stm8s-periphs\stm8s_type.h</name>
     </file>
     <file>
       <name>$PROJ_DIR$\STM8S-PERIPHS\stm8s_uart2.c</name>
     </file>
     <file>
-      <name>$PROJ_DIR$\stm8s-periphs\stm8s_uart2.h</name>
+      <name>$PROJ_DIR$\STM8S-PERIPHS\stm8s_uart2.h</name>
     </file>
     <configuration>
       <name>Debug</name>
