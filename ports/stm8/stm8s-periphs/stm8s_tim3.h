@@ -302,6 +302,7 @@ FlagStatus TIM3_GetFlagStatus(TIM3_FLAG_TypeDef TIM3_FLAG);
 void TIM3_ClearFlag(TIM3_FLAG_TypeDef TIM3_FLAG);
 ITStatus TIM3_GetITStatus(TIM3_IT_TypeDef TIM3_IT);
 void TIM3_ClearITPendingBit(TIM3_IT_TypeDef TIM3_IT);
+ITStatus TIM3_IsRunning();
 
 /**
   * @}

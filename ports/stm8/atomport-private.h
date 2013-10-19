@@ -72,6 +72,8 @@
 /* Function prototypes */
 void archInitSystemTickTimer (void);
 void archInitTimer3 ( void );
+void archDisableTimer3 ( void );
+void archEnableTimer3 ( void );
 INTERRUPT void TIM1_SystemTickISR (void);
 INTERRUPT void EXTI1_PortBISR (void);
 INTERRUPT void UART2_Rxd(void);

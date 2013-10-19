@@ -155,12 +155,12 @@ void HardwareInit( void )
     GPIO_WriteLow(GPIOA, GPIO_PIN_1);
     GPIO_Init(GPIOA, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteLow(GPIOA, GPIO_PIN_2);
-    GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST);
+    GPIO_Init(GPIOB, GPIO_PIN_4, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteLow(GPIOB, GPIO_PIN_4);
-    GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUT_PP_HIGH_FAST);
+    GPIO_Init(GPIOB, GPIO_PIN_5, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteLow(GPIOB, GPIO_PIN_5);
     //comma
-    GPIO_Init(GPIOF, GPIO_PIN_4, GPIO_MODE_OUT_PP_HIGH_FAST);
+    GPIO_Init(GPIOF, GPIO_PIN_4, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteLow(GPIOF, GPIO_PIN_4);
 
     GPIO_Init(GPIOC, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
@@ -178,9 +178,9 @@ void HardwareInit( void )
 
     GPIO_Init(GPIOD, GPIO_PIN_0, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteHigh(GPIOD, GPIO_PIN_0);
-    GPIO_Init(GPIOD, GPIO_PIN_1, GPIO_MODE_OUT_OD_HIZ_SLOW);
+    GPIO_Init(GPIOD, GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteHigh(GPIOD, GPIO_PIN_1);
-    GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_OD_HIZ_SLOW);
+    GPIO_Init(GPIOD, GPIO_PIN_2, GPIO_MODE_OUT_PP_LOW_SLOW);
     GPIO_WriteHigh(GPIOD, GPIO_PIN_2);
 
 }
@@ -365,6 +365,7 @@ static void ADC_Config()
     /*  Init GPIO for ADC1 */
     GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_IN_FL_NO_IT);
 
+
     /* De-Init ADC peripheral*/
     ADC1_DeInit();
 
@@ -390,59 +391,62 @@ void EXTI1_PortB_handler()
     }
 }
 
+static uint16_t display_num;
+static uint32_t display_time;
 void TIM3_handler()
 {
-    static uint8_t dot=0,num=0;
+    static uint8_t dot=0;
 
     if(dot<4) {
-    	dot++;
+        dot++;
     } else {
-    	dot=0;
+        dot=0;
+        if((display_time<atomTimeGet())||(display_num==0)) {
+            select_clear();
+            clear_dig();
+            archDisableTimer3();
+            display_num=0;
+            return;
+        }
     }
 
-    if(atomTimeGet()%100==0) {
-            num++;
-    }
+
     select_clear();
-    show_dig((num+dot)%16, (num+dot)%2);
+    show_dig((display_num>>(dot*4))&0xF, 0);
     select_dig(dot);
 
-    show_comma(num%2);
+    if(dot==0) {
+        show_comma(0);
+    }
 }
 
+static void archDisplay(uint16_t num, uint32_t time)
+{
+    __disable_interrupt();
+    display_time = atomTimeGet() + time;
+    display_num = num;
+    archEnableTimer3 ();
+    __enable_interrupt();
+}
+
+static void archDisplayInit()
+{
+    __disable_interrupt();
+    display_num =0;
+    archInitTimer3 ();
+    __enable_interrupt();
+}
 static void main_thread_func (uint32_t param)
 {
     int sleep_ticks;
-    uint8_t status,dot,num=0;
+    uint8_t status;
     uint16_t Conversion_Value;
 
     /* Compiler warnings */
     param = param;
 
-    __disable_interrupt();
-    archInitTimer3 ();
-    __enable_interrupt();
-#if 0
-    clear_dig();
+    archDisplayInit();
 
-    sleep_ticks=0;
-    for(status=0; status<1000; status++) {
-        if(status%53==0) {
-            num++;
-        }
-        for(dot=0; dot<4; dot++) {
-
-            select_clear();
-            show_dig((num+dot)%16, (num+dot)%2);
-            select_dig(dot);
-
-            show_comma(num%2);
-            atomTimerDelay(1);
-        }
-
-    }
-    clear_dig();
-#endif
     if (atomSemCreate (&sem_light, 0) != ATOM_OK)
     {
         ATOMLOG (_STR("Error creating test semaphore light\n"));
@@ -483,12 +487,18 @@ static void main_thread_func (uint32_t param)
 
 
         printf("ADC[0]: 0x%x\n", Conversion_Value);
+        
         if(Conversion_Value > 0x300) {
+            //10s
+            archDisplay(Conversion_Value, 10*100);
             /* Toggle BLUE LED  */
             GPIO_WriteLow(GPIOC, GPIO_PIN_2);
             //GPIO_WriteReverse(GPIOC, GPIO_PIN_2);
             /* Sleep then toggle LED again */
             atomTimerDelay(sleep_ticks);
+        } else {
+            //1s
+            archDisplay(Conversion_Value, 1*100);
         }
 
         /* Toggle small LED on board */

@@ -32,9 +32,11 @@
 #include "atomport-private.h"
 #include "stm8s_tim1.h"
 #include "stm8s_tim3.h"
+
 #if defined(__RCSTM8__)
 #include <intrins.h>
 #endif
+
 
 
 /** Forward declarations */
@@ -257,15 +259,26 @@ void archInitTimer3 ( void )
     /* Reset TIM3 */
     TIM3_DeInit();
 
-    /* Configure a 5ms tick */
-    TIM3_TimeBaseInit(TIM3_PRESCALER_2, 5000);
+    /* Configure a 2ms tick */
+    TIM3_TimeBaseInit(TIM3_PRESCALER_2, 0x7d0);
 
     /* Generate an interrupt on timer count overflow */
     TIM3_ITConfig(TIM1_IT_UPDATE, ENABLE);
 
-    /* Enable TIM1 */
+    /* Enable TIM3 */
     TIM3_Cmd(ENABLE);
 
+}
+void archDisableTimer3 ( void )
+{
+    /* Disable TIM3 */
+    TIM3_Cmd(DISABLE);
+}
+
+void archEnableTimer3 ( void )
+{
+    /* enable TIM3 */
+    TIM3_Cmd(ENABLE);
 }
 
 /**
@@ -380,7 +393,7 @@ interrupt 0x15
  *
  */
 #if defined(__IAR_SYSTEMS_ICC__)
-#pragma   vector = 0x3
+#pragma   vector = 0x03
 #endif
 INTERRUPT void AWU_ISR(void)
 #if defined(__RCSTM8__)

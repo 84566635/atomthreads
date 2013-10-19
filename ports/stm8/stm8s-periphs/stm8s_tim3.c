@@ -1052,6 +1052,21 @@ static void TI2_Config(u8 TIM3_ICPolarity,
     TIM3->CCER1 |= TIM3_CCER1_CC2E;
 
 }
+
+
+/**
+  * @brief Checks whether the TIM3 is running
+  * @param[in]
+  * This parameter can be one of the following values:
+
+  * @retval ITStatus The new state of the TIM3_IT(SET or RESET).
+  */
+
+ITStatus TIM3_IsRunning()
+{
+
+    return (ITStatus)(TIM3->CR1 & TIM3_CR1_CEN);
+}
 /**
   * @}
   */
