@@ -328,6 +328,17 @@ NO_REG_SAVE void main ( void )
     status = atomOSInit(&idle_thread_stack[IDLE_STACK_SIZE_BYTES - 1], IDLE_STACK_SIZE_BYTES);
     if (status == ATOM_OK)
     {
+#if 0
+        /*enable timer1 channel2 PWM */
+        TIM1_OC2Init(TIM1_OCMODE_PWM1,
+                  TIM1_OUTPUTSTATE_ENABLE,
+                  TIM1_OUTPUTNSTATE_DISABLE,
+                  u16 TIM1_Pulse,
+                  TIM1_OCPolarity_TypeDef TIM1_OCPolarity,
+                  TIM1_OCNPolarity_TypeDef TIM1_OCNPolarity,
+                  TIM1_OCIdleState_TypeDef TIM1_OCIdleState,
+                  TIM1_OCNIdleState_TypeDef TIM1_OCNIdleState);
+#endif                  
         /* Enable the system tick timer */
         archInitSystemTickTimer();
 

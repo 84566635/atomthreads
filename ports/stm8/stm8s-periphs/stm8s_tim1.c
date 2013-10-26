@@ -117,6 +117,57 @@ void TIM1_TimeBaseInit(u16 TIM1_Prescaler,
 
 }
 
+/**
+  * @brief Initializes the TIM1 Channel2 according to the specified parameters.
+  * @param[in] TIM1_OCMode specifies the Output Compare mode from @ref TIM1_OCMode_TypeDef.
+  * @param[in] TIM1_OutputState specifies the Output State from @ref TIM1_OutputState_TypeDef.
+  * @param[in] TIM1_OutputNState specifies the Complementary Output State from @ref TIM1_OutputNState_TypeDef.
+  * @param[in] TIM1_Pulse specifies the Pulse width value.
+  * @param[in] TIM1_OCPolarity specifies the Output Compare Polarity from @ref TIM1_OCPolarity_TypeDef.
+  * @param[in] TIM1_OCNPolarity specifies the Complementary Output Compare Polarity from @ref TIM1_OCNPolarity_TypeDef.
+  * @param[in] TIM1_OCIdleState specifies the Output Compare Idle State from @ref TIM1_OCIdleState_TypeDef.
+  * @param[in] TIM1_OCNIdleState specifies the Complementary Output Compare Idle State from @ref TIM1_OCIdleState_TypeDef.
+  * @retval None
+  */
+void TIM1_OC2Init(TIM1_OCMode_TypeDef TIM1_OCMode,
+                  TIM1_OutputState_TypeDef TIM1_OutputState,
+                  TIM1_OutputNState_TypeDef TIM1_OutputNState,
+                  u16 TIM1_Pulse,
+                  TIM1_OCPolarity_TypeDef TIM1_OCPolarity,
+                  TIM1_OCNPolarity_TypeDef TIM1_OCNPolarity,
+                  TIM1_OCIdleState_TypeDef TIM1_OCIdleState,
+                  TIM1_OCNIdleState_TypeDef TIM1_OCNIdleState)
+{
+
+
+    /* Check the parameters */
+    assert_param(IS_TIM1_OC_MODE_OK(TIM1_OCMode));
+    assert_param(IS_TIM1_OUTPUT_STATE_OK(TIM1_OutputState));
+    assert_param(IS_TIM1_OUTPUTN_STATE_OK(TIM1_OutputNState));
+    assert_param(IS_TIM1_OC_POLARITY_OK(TIM1_OCPolarity));
+    assert_param(IS_TIM1_OCN_POLARITY_OK(TIM1_OCNPolarity));
+    assert_param(IS_TIM1_OCIDLE_STATE_OK(TIM1_OCIdleState));
+    assert_param(IS_TIM1_OCNIDLE_STATE_OK(TIM1_OCNIdleState));
+
+    /* Disable the Channel 1: Reset the CCE Bit, Set the Output State , the Output N State, the Output Polarity & the Output N Polarity*/
+    TIM1->CCER1 &= (u8)(~( TIM1_CCER1_CC2E | TIM1_CCER1_CC2NE | TIM1_CCER1_CC2P | TIM1_CCER1_CC2NP));
+    /* Set the Output State & Set the Output N State & Set the Output Polarity & Set the Output N Polarity */
+    TIM1->CCER1 |= (u8)((TIM1_OutputState & TIM1_CCER1_CC2E  ) | (TIM1_OutputNState & TIM1_CCER1_CC2NE ) | (TIM1_OCPolarity  & TIM1_CCER1_CC2P  ) | (TIM1_OCNPolarity & TIM1_CCER1_CC2NP ));
+
+
+    /* Reset the Output Compare Bits & Set the Ouput Compare Mode */
+    TIM1->CCMR2 = (u8)((TIM1->CCMR2 & (u8)(~TIM1_CCMR_OCM)) | (u8)TIM1_OCMode);
+
+    /* Reset the Output Idle state & the Output N Idle state bits */
+    TIM1->OISR &= (u8)(~(TIM1_OISR_OIS2 | TIM1_OISR_OIS2N));
+    /* Set the Output Idle state & the Output N Idle state configuration */
+    TIM1->OISR |= (u8)((TIM1_OISR_OIS2 & TIM1_OCIdleState) | (TIM1_OISR_OIS2N & TIM1_OCNIdleState));
+
+    /* Set the Pulse value */
+    TIM1->CCR2H = (u8)(TIM1_Pulse >> 8);
+    TIM1->CCR2L = (u8)(TIM1_Pulse);
+
+}
 
 /**
   * @brief Enables or disables the TIM1 peripheral.
@@ -178,7 +229,19 @@ void TIM1_ITConfig(TIM1_IT_TypeDef  TIM1_IT, FunctionalState NewState)
 
 
 /**
-  * @}
+/**
+  * @brief Sets the TIM1 Capture Compare2 Register value.
+  * @param[in] Compare2 specifies the Capture Compare2 register new value.
+  * This parameter is between 0x0000 and 0xFFFF.
+  * @retval None
   */
+void TIM1_SetCompare2(u16 Compare2)
+{
+    /* Set the Capture Compare2 Register value */
+    TIM1->CCR2H = (u8)(Compare2 >> 8);
+    TIM1->CCR2L = (u8)(Compare2);
+
+}
+
 
 /******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/

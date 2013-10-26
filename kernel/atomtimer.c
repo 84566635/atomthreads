@@ -69,7 +69,10 @@
 
 #include <stdio.h>
 #include "atom.h"
-
+#ifdef VARIABLE_TICK_TIMER
+#include "stm8s_awu.h"
+#endif
+#include <stm8s_adc1.h>
 
 /* Data types */
 
@@ -82,6 +85,9 @@ typedef struct delay_timer
 
 
 /* Global data */
+#ifdef VARIABLE_TICK_TIMER
+uint32_t system_idle_ticks = 0;
+#endif 
 
 /* Local data */
 
@@ -293,7 +299,7 @@ void atomTimeSet(uint32_t new_time)
  *
  * @return None
  */
-void atomTimerTick (void)
+void atomTimerTick (void) @".near_func.textrw"
 {
     /* Only do anything if the OS is started */
     if (atomOSStarted)
@@ -407,10 +413,13 @@ uint8_t atomTimerDelay (uint32_t ticks)
  *
  * @return None
  */
-static void atomTimerCallbacks (void)
+static void atomTimerCallbacks (void) @".near_func.textrw"
 {
     ATOM_TIMER *prev_ptr, *next_ptr;
-
+#ifdef VARIABLE_TICK_TIMER
+            /* Maxmium idle time is 30s(AWU) */
+            system_idle_ticks = 3000;
+#endif
     /*
      * Walk the list decrementing each timer's remaining ticks count and
      * looking for due callbacks.
@@ -446,6 +455,12 @@ static void atomTimerCallbacks (void)
         /* Entry is not due, leave it in there with its count decremented */
         else
         {
+#ifdef VARIABLE_TICK_TIMER
+        if(next_ptr->cb_ticks < system_idle_ticks)
+        {
+            system_idle_ticks = next_ptr->cb_ticks;
+        }
+#endif
             /*
              * Update prev_ptr to this entry. We will need it if we want
              * to remove a mid or tail timer.
@@ -500,3 +515,75 @@ static void atomTimerDelayCallback (POINTER cb_data)
     }
 }
 
+#ifdef VARIABLE_TICK_TIMER    
+void AtomAwuHandler( void )
+{
+	ATOM_TIMER *prev_ptr, *next_ptr;
+	
+	system_ticks += system_idle_ticks;
+	    
+    /*
+     * Walk the list decrementing each timer's remaining ticks count and
+     * looking for due callbacks.
+     */
+    prev_ptr = next_ptr = timer_queue;
+    while (next_ptr)
+    {
+        next_ptr->cb_ticks -= system_idle_ticks;
+    }
+}
+
+void atomDeepSleep(uint32_t idletickes) @".near_func.textrw"
+{
+	AWU_Timebase_TypeDef awu_time;
+	if(system_idle_ticks <=1)
+	{
+		__wait_for_interrupt();
+		return;
+	}
+	else if(system_idle_ticks <=2)
+	{
+		awu_time = AWU_TIMEBASE_16MS;
+	}
+	else if(system_idle_ticks <=3)
+	{
+		awu_time = AWU_TIMEBASE_32MS;
+	}
+	else if(system_idle_ticks <=6)
+	{
+		awu_time = AWU_TIMEBASE_64MS;
+	}
+	else if(system_idle_ticks <=13)
+	{
+		awu_time = AWU_TIMEBASE_128MS;
+	}
+	else if(system_idle_ticks <=25)
+	{
+		awu_time = AWU_TIMEBASE_256MS;
+	}
+	else if(system_idle_ticks <=51)
+	{
+		awu_time = AWU_TIMEBASE_512MS;
+	}
+	else if(system_idle_ticks <=100)
+	{
+		awu_time = AWU_TIMEBASE_1S;
+	}
+	else if(system_idle_ticks <=200)
+	{
+		awu_time = AWU_TIMEBASE_2S;
+	}
+	else if(system_idle_ticks <=1200)
+	{
+		awu_time = AWU_TIMEBASE_12S;
+	}
+	else
+	{
+		awu_time = AWU_TIMEBASE_30S;
+	}
+	AWU_Init(awu_time);
+	//AWU_Cmd(ENABLE);
+	__halt();
+	AWU_IdleModeEnable();
+}
+#endif
