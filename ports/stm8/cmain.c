@@ -34,7 +34,6 @@
 #include "atomsem.h"
 #include "atomport-private.h"
 #include "atomport-tests.h"
-#include "atomtests.h"
 #include "atomtimer.h"
 #include "uart.h"
 #include "stm8s.h"
@@ -344,7 +343,7 @@ NO_REG_SAVE void main ( void )
 
         /* Create an application thread */
         status = atomThreadCreate(&main_tcb,
-                                  TEST_THREAD_PRIO, main_thread_func, 0,
+                                  16, main_thread_func, 0,
                                   &main_thread_stack[MAIN_STACK_SIZE_BYTES - 1],
                                   MAIN_STACK_SIZE_BYTES);
         if (status == ATOM_OK)
