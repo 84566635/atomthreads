@@ -32,6 +32,8 @@
 #include "atomport-private.h"
 #include "stm8s_tim1.h"
 #include "stm8s_tim3.h"
+#include <stm8s_adc1.h>
+#include <stm8s_awu.h>
 
 #if defined(__RCSTM8__)
 #include <intrins.h>
@@ -378,12 +380,12 @@ interrupt 0x15
 {
     /* Call the interrupt entry routine */
     atomIntEnter();
-	
+
     UART2->SR &= (~UART2_SR_RXNE);
     //mrxdata = UART2_DR;
     //bpendingecho=1;
-	
-	/* Call the interrupt exit routine */
+
+    /* Call the interrupt exit routine */
     atomIntExit(TRUE);
 }
 
@@ -402,15 +404,15 @@ interrupt 0x2
 {
     /* Call the interrupt entry routine */
     atomIntEnter();
-	
+
     if(AWU_GetFlagStatus()==SET)
     {
-#ifdef VARIABLE_TICK_TIMER    
-    	AtomAwuHandler();
-#endif    	
+#ifdef VARIABLE_TICK_TIMER
+        AtomAwuHandler();
+#endif
     }
-	
-	/* Call the interrupt exit routine */
+
+    /* Call the interrupt exit routine */
     atomIntExit(TRUE);
 }
 /**
@@ -436,11 +438,29 @@ interrupt 0x10
     /* Call the interrupt entry routine */
     atomIntEnter();
 
-	TIM3_handler();
+    TIM3_handler();
     /* Ack the interrupt (Clear TIM1:SR1 register bit 0) */
     TIM3->SR1 = (uint8_t)(~(uint8_t)TIM1_IT_UPDATE);
-	
-	
-	/* Call the interrupt exit routine */
+
+
+    /* Call the interrupt exit routine */
     atomIntExit(TRUE);
+}
+
+void archIdleHandler ( uint32_t param )
+{
+    CRITICAL_STORE;
+    uint32_t idleticks=0;
+
+#if defined(__IAR_SYSTEMS_ICC__)
+    CRITICAL_START();
+    idleticks = atomTimerGetIdle();
+    if( (idleticks>3) && (ADC1_GetFlagStatus(ADC1_FLAG_EOC)==SET) && (TIM3_IsRunning()==RESET) ) {
+        __halt();
+    } else {
+        __wait_for_interrupt();
+    }
+    CRITICAL_END();
+#endif
+
 }

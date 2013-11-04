@@ -146,8 +146,6 @@
 
 #include <stddef.h>
 #include "atom.h"
-#include <stm8s_adc1.h>
-#include <stm8s_tim3.h>
 
 
 /* Global data */
@@ -729,9 +727,6 @@ void atomOSStart (void)
 
 }
 
-#ifdef VARIABLE_TICK_TIMER
-extern void atomDeepSleep(void);
-#endif
 
 /**
  * \b atomIdleThread
@@ -755,16 +750,8 @@ static void atomIdleThread (uint32_t param) @".near_func.textrw"
     /* Loop forever */
     while (1)
     {
-        /**/
-#ifdef VARIABLE_TICK_TIMER
-        atomDeepSleep();
-#else
-        if((ADC1_GetFlagStatus(ADC1_FLAG_EOC)==SET)&&(TIM3_IsRunning()==RESET)) {
-            __halt();
-        } else {
-            __wait_for_interrupt();
-        }
-#endif
+        /** \todo Provide user idle hooks*/
+        archIdleHandler(param);
     }
 }
 

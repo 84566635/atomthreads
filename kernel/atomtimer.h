@@ -59,6 +59,7 @@ extern uint32_t atomTimeGet (void);
 extern void atomTimeSet (uint32_t new_time);
 #ifdef VARIABLE_TICK_TIMER    
 extern void AtomAwuHandler( void );
-#endif 
+#endif
+uint32_t atomTimerGetIdle (void);
 
 #endif /* __ATOM_TIMER_H */

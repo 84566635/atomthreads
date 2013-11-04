@@ -58,6 +58,7 @@
 
 /* Uncomment to enable stack-checking */
 /* #define ATOM_STACK_CHECKING */
+void archIdleHandler ( uint32_t  );
 
 
 #endif /* __ATOM_PORT_H */
