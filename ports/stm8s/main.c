@@ -123,6 +123,7 @@ NEAR static uint8_t idle_thread_stack[IDLE_STACK_SIZE_BYTES];
 static void main_thread_func (uint32_t param);
 
 static void GPIO_Config(void);
+static uint16_t ADC_Read(void);
 
 
 /**
@@ -190,8 +191,116 @@ NO_REG_SAVE void main ( void )
     }
 
 }
+/**
+  * @brief  Configure TIM1 to generate 7 PWM signals with 4 different duty cycles
+  * @param  None
+  * @retval None
+  */
+static void TIM1_Config(void)
+{
+    uint16_t ICValue;
+    uint16_t rpm;
+    uint16_t Conversion_Value;
+
+    TIM1_DeInit();
+
+    /* Time Base configuration 10KHz=100us*/
+    /* gernal speed of PC fan
+       1000rpm=16.66Hz=60ms=60000us*/
+    /*
+    TIM1_Period = 4095
+    TIM1_Prescaler = 1
+    TIM1_CounterMode = TIM1_COUNTERMODE_UP
+    TIM1_RepetitionCounter = 0
+    */
+
+    TIM1_TimeBaseInit(200-1, TIM1_COUNTERMODE_UP, 8195, 0);
+
+    /* Channel 1 in PWM mode */
+
+    /*
+    TIM1_OCMode = TIM1_OCMODE_PWM2
+    TIM1_OutputState = TIM1_OUTPUTSTATE_ENABLE
+    TIM1_OutputNState = TIM1_OUTPUTNSTATE_ENABLE
+    TIM1_Pulse = CCR1_Val
+    TIM1_OCPolarity = TIM1_OCPOLARITY_LOW
+    TIM1_OCNPolarity = TIM1_OCNPOLARITY_HIGH
+    TIM1_OCIdleState = TIM1_OCIDLESTATE_SET
+    TIM1_OCNIdleState = TIM1_OCIDLESTATE_RESET
+
+    */
+    TIM1_OC1Init(TIM1_OCMODE_PWM2, TIM1_OUTPUTSTATE_ENABLE, TIM1_OUTPUTNSTATE_ENABLE,
+                 4000, TIM1_OCPOLARITY_LOW, TIM1_OCNPOLARITY_HIGH, TIM1_OCIDLESTATE_SET,
+                 TIM1_OCNIDLESTATE_RESET);
+
+    /* Channel 2 in Capure/Compare mode */
+    TIM1_ICInit( TIM1_CHANNEL_2, TIM1_ICPOLARITY_RISING, TIM1_ICSELECTION_DIRECTTI,
+                 TIM1_ICPSC_DIV1, 0x0);
+
+    TIM1_SelectInputTrigger(TIM1_TS_TI2FP2);
+    TIM1_SelectSlaveMode(TIM1_SLAVEMODE_RESET);
 
 
+
+    /* TIM1 counter enable */
+    TIM1_Cmd(ENABLE);
+    /* TIM1 Main Output Enable */
+    TIM1_CtrlPWMOutputs(ENABLE);
+
+
+    /* Clear CC2 Flag*/
+    TIM1_ClearFlag(TIM1_FLAG_CC2);
+
+read_speed:
+    /* wait a capture on CC2 */
+    while((TIM1->SR1 & TIM1_FLAG_CC2) != TIM1_FLAG_CC2);
+    /* Get CCR2 value*/
+    ICValue = TIM1_GetCapture2();
+    TIM1_ClearFlag(TIM1_FLAG_CC2);
+
+    Conversion_Value = ADC_Read();
+
+    if(ICValue > 65535) {
+        printf("Invalid value\n");
+    } else {
+        rpm = 10000/ICValue;
+        rpm *= 60;
+        printf("[%d]rpm %d ADC 0x%x\n", ICValue, rpm, Conversion_Value);
+    }
+
+    goto read_speed;
+
+
+}
+
+static void ADC_Config(void)
+{
+    /*  Init GPIO for ADC1 */
+    GPIO_Init(GPIOB, GPIO_PIN_0, GPIO_MODE_IN_FL_NO_IT);
+
+    /* De-Init ADC peripheral*/
+    ADC1_DeInit();
+
+    /* Init ADC2 peripheral */
+    ADC1_Init(ADC1_CONVERSIONMODE_SINGLE, ADC1_CHANNEL_0, ADC1_PRESSEL_FCPU_D18, \
+              ADC1_EXTTRIG_TIM, DISABLE, ADC1_ALIGN_LEFT, ADC1_SCHMITTTRIG_CHANNEL0,\
+              DISABLE);
+
+    /* Disable EOC interrupt */
+    ADC1_ITConfig(ADC1_IT_EOCIE, DISABLE);
+}
+
+static uint16_t ADC_Read(void)
+{
+    uint16_t Conversion_Value;
+    ADC1_StartConversion();
+    while(ADC1_GetFlagStatus(ADC1_FLAG_EOC)==RESET) {
+        atomTimerDelay(1);
+    };
+    Conversion_Value = ADC1_GetConversionValue();
+    //ADC1_ITConfig(ADC1_IT_EOC, DISABLE);
+    return Conversion_Value;
+}
 /**
   * \b  Configure GPIOs
   * @param  None
@@ -218,6 +327,8 @@ static void GPIO_Config(void)
 static void main_thread_func (uint32_t param)
 {
     uint32_t test_status;
+
+    ADC_Config();
 
     /* Compiler warnings */
     param = param;
@@ -259,8 +370,7 @@ static void main_thread_func (uint32_t param)
     }
 #endif
 
-    /* Test printf function */
-    printf("printf test(%d)\n", (int)test_status);
+    
 
 
     /* Test finished, flash slowly for pass, fast for fail */
@@ -268,6 +378,9 @@ static void main_thread_func (uint32_t param)
     {
         /* Toggle LED on pin E5 (STM8S mini board-specific) */
         GPIO_WriteReverse(GPIOE, GPIO_PIN_5);
+
+        /* Test printf function */
+        printf("Temp ADC (0x%x)\n", ADC_Read());
 
         /* Sleep then toggle LED again */
         atomTimerDelay(SYSTEM_TICKS_PER_SEC);
